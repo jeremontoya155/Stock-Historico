@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta de Stock</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f7f7f7;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    form {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 10px;
+    }
+    input[type="date"],
+    input[type="text"] {
+      width: calc(50% - 10px);
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #007bff;
+      color: #fff;
+    }
+    tbody tr:hover {
+      background-color: #f2f2f2;
+    }
+    .pagination {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .pagination button {
+      margin: 0 5px;
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pagination button.active {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Consulta de Stock</h1>
+    <form id="stockForm">
+      <label for="fecha_desde">Fecha Inicio:</label>
+      <input type="date" id="fecha_desde" name="fecha_desde" required>
+      <label for="fecha_hasta">Fecha Final:</label>
+      <input type="date" id="fecha_hasta" name="fecha_hasta" required>
+      <label for="idproducto">ID Producto:</label>
+      <input type="text" id="idproducto" name="idproducto" required>
+      <label for="sucursal">Sucursal:</label>
+      <input type="text" id="sucursal" name="sucursal" required>
+      <button type="submit">Consultar</button>
+    </form>
+  </div>
+
+  <div class="container">
+    <div id="resultados"></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <script>
+    document.getElementById('stockForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const formData = new FormData(event.target);
+      const fecha_desde = formData.get('fecha_desde');
+      const fecha_hasta = formData.get('fecha_hasta');
+      const idproducto = formData.get('idproducto');
+      const sucursal = formData.get('sucursal');
+
+      const url = `/stock?fecha_desde=${fecha_desde}&fecha_hasta=${fecha_hasta}&idproducto=${idproducto}&sucursal=${sucursal}`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const table = `
+          <table>
+            <thead>
+              <tr>
+                <th>Sucursal</th>
+                <th>Fecha</th>
+                <th>ID Producto</th>
+                <th>Tipo Movimiento</th>
+                <th>Cantidad Acumulada</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map(row => `
+                <tr>
+                  <td>${row.sucursal}</td>
+                  <td>${row.fecha}</td>
+                  <td>${row.idproducto}</td>
+                  <td>${row.tipomovimiento}</td>
+                  <td>${row.cantidad_acumulada}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+
+        document.getElementById('resultados').innerHTML = table;
+
+        const totalPages = Math.ceil(data.length / 10);
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        for (let i = 1; i <= totalPages; i++) {
+          const button = document.createElement('button');
+          button.textContent = i;
+          button.addEventListener('click', () => showPage(data, i));
+          pagination.appendChild(button);
+        }
+      } catch (error) {
+        console.error('Error al obtener los datos:', error);
+      }
+    });
+
+    function showPage(data, pageNumber) {
+      const startIndex = (pageNumber - 1) * 10;
+      const endIndex = pageNumber * 10;
+      const slicedData = data.slice(startIndex, endIndex);
+
+      const table = `
+        <table>
+          <thead>
+            <tr>
+              <th>Sucursal</th>
+              <th>Fecha</th>
+              <th>ID Producto</th>
+              <th>Tipo Movimiento</th>
+              <th>Cantidad Acumulada</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${slicedData.map(row => `
+              <tr>
+                <td>${row.sucursal}</td>
+                <td>${row.fecha}</td>
+                <td>${row.idproducto}</td>
+                <td>${row.tipomovimiento}</td>
+                <td>${row.cantidad_acumulada}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById('resultados').innerHTML = table;
+    }
+  </script>
+</body>
+</html>
